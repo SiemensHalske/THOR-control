@@ -84,11 +84,19 @@ ADDR_LIST = [
 lock = threading.Lock()
 io_lock = threading.Lock()
 THREADS = []
-
+CONTROLLER = []
 # ***********************
 
 GPIO.setWarnings(False)
 GPIO.setmode(GPIO.BCM)
+
+
+class PowerSupply_OS:
+    def __init__(self, name = "THOR") -> None:
+        self.name
+        
+        ["Booting up...", "May take up to 30s"]
+        
 
 
 class ErrorCode:
@@ -163,7 +171,6 @@ class LCDControl:
         
         time.sleep(0.002)  # wait 2ms 
         
-    
     def lcd_display(self):
         assert len(self.TEXT_LINES) <= 2, "Only 2 lines of text are supported"
         
@@ -509,6 +516,7 @@ def pwr_alert_isr():
 def int_cursor_isr():
     a=1
 
+
 def signal_handler(sig, frame):
     print('You pressed Ctrl+C!')
     # Paste cleanup code here when needed in the future.
@@ -587,11 +595,13 @@ def setup():
     
     with lock:
         bus = smbus2.SMBus(BUS_IO)
+        
+        # Configuring the MCP23017
         # Configure Bank A: 0b00111000 -> Pins 5, 6 and 7 as output, others as input
         # Configure Bank B: 0b10100000 -> Pins 6 and 7 as output, Pins 0 to 4 as input, others as input
         bus.write_byte_data(BUTTON_CURSOR_ADDR, MCP23017_IODIRA, 0b00111000)
         bus.write_byte_data(BUTTON_CURSOR_ADDR, MCP23017_IODIRB, 0b10100000)
-        
+         
         bus.close()
     
     sleep(1)
