@@ -129,13 +129,14 @@ def GPIO_setup():
     GPIO.setup(RS3, IN)
     GPIO.setup(ECHO_RESPONSE_0, IN)
     
-    GPIO.setup(TRIGGER_0, OUT)
-    GPIO.setup(LCD_PWM, OUT)
-    GPIO.setup(LCD_RST, OUT)
     GPIO.setup(PWR_PUMP1, OUT)
     GPIO.setup(PWR_PUMP2, OUT)
     GPIO.setup(PWR_PUMP3, OUT)
     GPIO.setup(PWR_PUMP4, OUT)
+    GPIO.setup(TRIGGER_0, OUT)
+    GPIO.setup(LCD_PWM, OUT)
+    GPIO.setup(LCD_RST, OUT)
+    
     GPIO.setup(BUZZER, OUT)
     GPIO.setup(ENABLE_ALARM1, OUT)
     GPIO.setup(ENABLE_ALARM2, OUT)
