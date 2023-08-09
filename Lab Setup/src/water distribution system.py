@@ -7,22 +7,31 @@ import RPi.GPIO as GPIO
 
 # ***** Global variables *****
 
-INT1 = 7
-RS1 = 11
-RS2 = 13
-RS3 = 15
-ECHO_RESPONSE_0 = 35
-TRIGGER_0 = 37
+BUZZER = 36
+
+ENABLE_ALARM1 = 38
+ENABLE_ALARM2 = 40
+
 LCD_PWM = 12
 LCD_RST = 18
+
+INT1 = 7
+
 PWR_PUMP1 = 22
 PWR_PUMP2 = 24
 PWR_PUMP3 = 26
 PWR_PUMP4 = 28
-BUZZER = 36
-ENABLE_ALARM1 = 38
-ENABLE_ALARM2 = 40
 
+RS1 = 11
+RS2 = 13
+RS3 = 15
+
+ECHO_RESPONSE_0 = 35
+TRIGGER_0 = 37
+
+recent_water_level = [None, None]
+
+# ***** Adresses *****
 
 ADDR_PCF8574 = 0x20
 ADDR_LCD = 0x78
@@ -33,7 +42,6 @@ ADDR_LCD = 0x78
 class TankGuard:
     
     speed_of_sound = 343.2 
-    
     tank_height = 100
     
     def __init__(self) -> None:
@@ -63,8 +71,11 @@ class TankGuard:
         return self.tank_height - self.get_distance()
     
     def guard_controller(self):
+        global recent_water_level
+        
         while self.guard_running:
             water_level =  self.get_water_level()
+            recent_water_level = [water_level, time.time()]
             
             if self.upper_tank_limit - 0.1 <= water_level:
                 GPIO.output(PWR_PUMP1, GPIO.HIGH)
