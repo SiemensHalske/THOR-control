@@ -1,9 +1,12 @@
 # ***** Imports *****
 
-from threading import Thread
-from time import sleep
 import time
 import RPi.GPIO as GPIO
+import smbus2
+
+from threading import Thread
+from time import sleep
+
 
 # ***** Global variables *****
 
@@ -21,6 +24,7 @@ PWR_PUMP1 = 22
 PWR_PUMP2 = 24
 PWR_PUMP3 = 26
 PWR_PUMP4 = 28
+PUMP_LIST = [PWR_PUMP1, PWR_PUMP2, PWR_PUMP3, PWR_PUMP4]
 
 RS1 = 11
 RS2 = 13
@@ -78,9 +82,11 @@ class TankGuard:
             recent_water_level = [water_level, time.time()]
             
             if self.upper_tank_limit - 0.1 <= water_level:
-                GPIO.output(PWR_PUMP1, GPIO.HIGH)
+                pass
+                # GPIO.output(PWR_PUMP1, GPIO.HIGH)
             else:
-                GPIO.output(PWR_PUMP1, GPIO.LOW)
+                pass
+                # GPIO.output(PWR_PUMP1, GPIO.LOW)
             sleep(.25)
             
     def start(self):
@@ -91,30 +97,78 @@ class TankGuard:
         self.guard_running = False
         self.guard_thread.join()
         
-
-class LCD_DRIVER:
+        
+class PumpControl:
+    state_pump1 = False
+    state_pump2 = False
+    state_pump3 = False
+    state_pump4 = False
     
-    text_lines = [
-        "------- GRID -------", 
-        "--------------------"
-    ]
+    state_list = [state_pump1, state_pump2, state_pump3, state_pump4]
     
     def __init__(self) -> None:
         
+        self.pump_control_running = False
+        self.pump_controller = Thread(target=self.controller_thread, daemon=True)
+        
+    def controller_thread(self):
+        while self.pump_control_running:
+            for i, pump in enumerate(PUMP_LIST):
+                GPIO.output(pump, GPIO.HIGH) if self.state_list[i] else GPIO.output(pump, GPIO.LOW)
+            sleep(.25)
+    
+    def start(self):
+        self.pump_control_running = True
+        self.pump_controller.start()
+        
+    def stop(self):
+        self.pump_control_running = False
+        self.pump_controller.join()
+        
+
+class LCD_DRIVER:
+    text_block = [
+        "--------------------",
+        "--------------------"
+    ]
+    
+    def __init__(self, bus_num, lcd_address):
+        self.bus = smbus2.SMBus(bus_num)
+        self.lcd_address = lcd_address
+        self.initialize_lcd()
+        
         self.driver_running = False
-        self.driver_thread = Thread(target=self.lcd_controller, daemon=True)    
+        self.driver_thread = Thread()    
     
     def lcd_controller(self):
         while self.driver_running:
-            pass
-        
-    def start(self):
-        self.driver_running = True
-        self.driver_thread.start()
+            self.display(self.text_block)
+            sleep(.2)
     
-    def stop(self):
-        self.driver_running = False
-        self.driver_thread.join()
+    def initialize_lcd(self):
+        pass
+
+    def write_line(self, line_number, text):
+        
+        if line_number not in [0, 1] or len(text) > 20:
+            print("Invalid line number or text length")
+            print("Limiting characters to 20.")
+            
+            text = text[:20]
+        
+        command = 0x80 if line_number == 0 else 0xC0  # command to move cursor
+        self.bus.write_byte_data(ADDR_LCD, command, 0)
+
+        for char in text:
+            self.bus.write_byte_data(self.lcd_address, ord(char), 0)
+
+    def display(self, lines):
+        if len(lines) != 2:
+            raise ValueError("Exactly two lines required")
+        
+        for i, line in enumerate(lines):
+            self.write_line(i, line)
+
 
 
 class InterruptServiceRoutines:
@@ -156,7 +210,9 @@ def GPIO_setup():
     GPIO.add_event_detect(INT1, GPIO.FALLING, callback = InterruptServiceRoutines.ISR_INT1)
 
 def setup():
-    pass
+    GPIO_setup()
+    sleep(.25)
+    
 
 
 if __name__ == '__main__':
