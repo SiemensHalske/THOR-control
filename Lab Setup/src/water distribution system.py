@@ -45,8 +45,10 @@ ADDR_LCD = 0x78
 
 class TankGuard:
     
+    pump_override = False
+    
     speed_of_sound = 343.2 
-    tank_height = 100
+    tank_height = 100 
     
     def __init__(self) -> None:
         
@@ -81,13 +83,14 @@ class TankGuard:
             water_level =  self.get_water_level()
             recent_water_level = [water_level, time.time()]
             
-            if self.upper_tank_limit - 0.1 <= water_level:
-                pass
-                # GPIO.output(PWR_PUMP1, GPIO.HIGH)
-            else:
-                pass
-                # GPIO.output(PWR_PUMP1, GPIO.LOW)
-            sleep(.25)
+            if not self.pump_override:
+                if self.upper_tank_limit - 0.1 <= water_level:
+                    pass
+                    # GPIO.output(PWR_PUMP1, GPIO.HIGH)
+                else:
+                    pass
+                    # GPIO.output(PWR_PUMP1, GPIO.LOW)
+                sleep(.25)
             
     def start(self):
         self.guard_running=True
@@ -96,34 +99,6 @@ class TankGuard:
     def stop(self):
         self.guard_running = False
         self.guard_thread.join()
-        
-        
-class PumpControl:
-    state_pump1 = False
-    state_pump2 = False
-    state_pump3 = False
-    state_pump4 = False
-    
-    state_list = [state_pump1, state_pump2, state_pump3, state_pump4]
-    
-    def __init__(self) -> None:
-        
-        self.pump_control_running = False
-        self.pump_controller = Thread(target=self.controller_thread, daemon=True)
-        
-    def controller_thread(self):
-        while self.pump_control_running:
-            for i, pump in enumerate(PUMP_LIST):
-                GPIO.output(pump, GPIO.HIGH) if self.state_list[i] else GPIO.output(pump, GPIO.LOW)
-            sleep(.25)
-    
-    def start(self):
-        self.pump_control_running = True
-        self.pump_controller.start()
-        
-    def stop(self):
-        self.pump_control_running = False
-        self.pump_controller.join()
         
 
 class LCD_DRIVER:
@@ -172,12 +147,12 @@ class InterruptServiceRoutines:
     def ISR_INT1(channel):
         sleep(.01)
         
-    def ISR_ECHO_RESPONSE(channel):
-        sleep(.01)
+    # def ISR_ECHO_RESPONSE(channel):
+    #    sleep(.01)
 
 
 def main():
-    pass
+    sleep(1)
 
 
 def GPIO_setup():
@@ -202,7 +177,6 @@ def GPIO_setup():
     GPIO.setup(ENABLE_ALARM1, OUT)
     GPIO.setup(ENABLE_ALARM2, OUT)
 
-    GPIO.add_event_detect(ECHO_RESPONSE_0, GPIO.RISING, callback = InterruptServiceRoutines.ISR_ECHO_RESPONSE)
     GPIO.add_event_detect(INT1, GPIO.FALLING, callback = InterruptServiceRoutines.ISR_INT1)
 
 def setup():
