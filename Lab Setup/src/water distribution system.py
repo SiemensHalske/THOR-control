@@ -127,11 +127,6 @@ class PumpControl:
         
 
 class LCD_DRIVER:
-    text_block = [
-        "--------------------",
-        "--------------------"
-    ]
-    
     def __init__(self, bus_num, lcd_address):
         self.bus = smbus2.SMBus(bus_num)
         self.lcd_address = lcd_address
@@ -149,6 +144,8 @@ class LCD_DRIVER:
         pass
 
     def write_line(self, line_number, text):
+        
+        line_number -= 1
         
         if line_number not in [0, 1] or len(text) > 20:
             print("Invalid line number or text length")
@@ -172,7 +169,6 @@ class LCD_DRIVER:
 
 
 class InterruptServiceRoutines:
-    
     def ISR_INT1(channel):
         sleep(.01)
         
