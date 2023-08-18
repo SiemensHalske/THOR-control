@@ -1,46 +1,17 @@
-# ***** Imports *****
-
+import water_distribution_system
 import time
+from types import SimpleNamespace
 import RPi.GPIO as GPIO
 import smbus2
+import system_functions
 
-from threading import Thread
+from threading import Lock, Thread
 from time import sleep
 
+from water_distribution_system import ADDR_LCD, ANALOG_SWITCH_1, ANALOG_SWITCH_2, ANALOG_SWITCH_3, ANALOG_SWITCH_4, ECHO_RESPONSE_0, PWR_PUMP1, TRIGGER_0, read_pcf8574
 
-# ***** Global variables *****
-
-BUZZER = 36
-
-ENABLE_ALARM1 = 38
-ENABLE_ALARM2 = 40
-
-LCD_PWM = 12
-LCD_RST = 18
-
-INT1 = 7
-
-PWR_PUMP1 = 22
-PWR_PUMP2 = 24
-PWR_PUMP3 = 26
-PWR_PUMP4 = 28
-PUMP_LIST = [PWR_PUMP1, PWR_PUMP2, PWR_PUMP3, PWR_PUMP4]
-
-RS1 = 11
-RS2 = 13
-RS3 = 15
-
-ECHO_RESPONSE_0 = 35
-TRIGGER_0 = 37
-
-recent_water_level = [None, None]
-
-# ***** Adresses *****
-
-ADDR_PCF8574 = 0x20
-ADDR_LCD = 0x78
-
-# ****************************
+LOW = GPIO.LOW
+HIGH = GPIO.HIGH
 
 
 class TankGuard:
@@ -85,11 +56,9 @@ class TankGuard:
             
             if not self.pump_override:
                 if self.upper_tank_limit - 0.1 <= water_level:
-                    pass
-                    # GPIO.output(PWR_PUMP1, GPIO.HIGH)
+                    water_distribution_system.PUMP_STATES[0] = HIGH
                 else:
-                    pass
-                    # GPIO.output(PWR_PUMP1, GPIO.LOW)
+                    water_distribution_system.PUMP_STATES[0] = LOW
                 sleep(.25)
             
     def start(self):
@@ -102,13 +71,15 @@ class TankGuard:
         
 
 class LCD_DRIVER:
+    text_block = ["--------------------","--------------------"]
+    
     def __init__(self, bus_num, lcd_address):
         self.bus = smbus2.SMBus(bus_num)
         self.lcd_address = lcd_address
         self.initialize_lcd()
         
         self.driver_running = False
-        self.driver_thread = Thread()    
+        self.driver_thread = Thread(target=self.lcd_controller, daemon=True)    
     
     def lcd_controller(self):
         while self.driver_running:
@@ -140,50 +111,49 @@ class LCD_DRIVER:
         
         for i, line in enumerate(lines):
             self.write_line(i, line)
-
-
-
-class InterruptServiceRoutines:
-    def ISR_INT1(channel):
-        sleep(.01)
+            
+    def start(self):
+        self.driver_running = True
+        self.driver_thread.start()
         
-    # def ISR_ECHO_RESPONSE(channel):
-    #    sleep(.01)
+    def stop(self):
+        self.driver_running = False
+        self.driver_thread.join()
 
 
-def main():
-    sleep(1)
+class InterruptServiceRoutines:   
+    INT_ENABLE = False
+    most_recent_io_list = [None] * 8
+         
+    def ISR_IO(self, channel):
+        self.most_recent_io_list = read_pcf8574() if self.INT_ENABLE else sleep(.002)
+        
 
-
-def GPIO_setup():
-    IN = GPIO.IN
-    OUT = GPIO.OUT
+class PumpControl:
+    condition = [
+        system_functions.get_gpio_state(ANALOG_SWITCH_1),
+        system_functions.get_gpio_state(ANALOG_SWITCH_2) or system_functions.get_gpio_state(ANALOG_SWITCH_3),
+        system_functions.get_gpio_state(ANALOG_SWITCH_4)
+    ]
     
-    GPIO.setup(INT1, IN)
-    GPIO.setup(RS1, IN)
-    GPIO.setup(RS2, IN)
-    GPIO.setup(RS3, IN)
-    GPIO.setup(ECHO_RESPONSE_0, IN)
     
-    GPIO.setup(PWR_PUMP1, OUT)
-    GPIO.setup(PWR_PUMP2, OUT)
-    GPIO.setup(PWR_PUMP3, OUT)
-    GPIO.setup(PWR_PUMP4, OUT)
-    GPIO.setup(TRIGGER_0, OUT)
-    GPIO.setup(LCD_PWM, OUT)
-    GPIO.setup(LCD_RST, OUT)
+    def __init__(self) -> None:
+        
+        self.pump_thread = Thread(target=self.pump_control)
+        self.pump_control_running = False
     
-    GPIO.setup(BUZZER, OUT)
-    GPIO.setup(ENABLE_ALARM1, OUT)
-    GPIO.setup(ENABLE_ALARM2, OUT)
-
-    GPIO.add_event_detect(INT1, GPIO.FALLING, callback = InterruptServiceRoutines.ISR_INT1)
-
-def setup():
-    GPIO_setup()
-    sleep(.25)
-    
-
-
-if __name__ == '__main__':
-    pass
+    def pump_control(self):
+        while self.pump_control_running:
+            if self.condition[0]:
+                GPIO.output(PWR_PUMP1, GPIO.HIGH)
+        print("Pump Control stopped!")
+        print("Please take caution when it's raining outside!"),
+        
+    def start(self):
+        self.pump_control_running = True
+        self.pump_thread.start()
+        self.pump_thread.setDaemon(True)
+        
+    def stop(self):
+        self.pump_control_running = False
+        self.pump_thread.join()
