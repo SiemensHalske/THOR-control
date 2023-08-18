@@ -68,57 +68,6 @@ class TankGuard:
     def stop(self):
         self.guard_running = False
         self.guard_thread.join()
-        
-
-class LCD_DRIVER:
-    text_block = ["--------------------","--------------------"]
-    
-    def __init__(self, bus_num, lcd_address):
-        self.bus = smbus2.SMBus(bus_num)
-        self.lcd_address = lcd_address
-        self.initialize_lcd()
-        
-        self.driver_running = False
-        self.driver_thread = Thread(target=self.lcd_controller, daemon=True)    
-    
-    def lcd_controller(self):
-        while self.driver_running:
-            self.display(self.text_block)
-            sleep(.2)
-    
-    def initialize_lcd(self):
-        pass
-
-    def write_line(self, line_number, text):
-        
-        line_number -= 1
-        
-        if line_number not in [0, 1] or len(text) > 20:
-            print("Invalid line number or text length")
-            print("Limiting characters to 20.")
-            
-            text = text[:20]
-        
-        command = 0x80 if line_number == 0 else 0xC0  # command to move cursor
-        self.bus.write_byte_data(ADDR_LCD, command, 0)
-
-        for char in text:
-            self.bus.write_byte_data(self.lcd_address, ord(char), 0)
-
-    def display(self, lines):
-        if len(lines) != 2:
-            raise ValueError("Exactly two lines required")
-        
-        for i, line in enumerate(lines):
-            self.write_line(i, line)
-            
-    def start(self):
-        self.driver_running = True
-        self.driver_thread.start()
-        
-    def stop(self):
-        self.driver_running = False
-        self.driver_thread.join()
 
 
 class InterruptServiceRoutines:   
@@ -127,33 +76,3 @@ class InterruptServiceRoutines:
          
     def ISR_IO(self, channel):
         self.most_recent_io_list = read_pcf8574() if self.INT_ENABLE else sleep(.002)
-        
-
-class PumpControl:
-    condition = [
-        system_functions.get_gpio_state(ANALOG_SWITCH_1),
-        system_functions.get_gpio_state(ANALOG_SWITCH_2) or system_functions.get_gpio_state(ANALOG_SWITCH_3),
-        system_functions.get_gpio_state(ANALOG_SWITCH_4)
-    ]
-    
-    
-    def __init__(self) -> None:
-        
-        self.pump_thread = Thread(target=self.pump_control)
-        self.pump_control_running = False
-    
-    def pump_control(self):
-        while self.pump_control_running:
-            if self.condition[0]:
-                GPIO.output(PWR_PUMP1, GPIO.HIGH)
-        print("Pump Control stopped!")
-        print("Please take caution when it's raining outside!"),
-        
-    def start(self):
-        self.pump_control_running = True
-        self.pump_thread.start()
-        self.pump_thread.setDaemon(True)
-        
-    def stop(self):
-        self.pump_control_running = False
-        self.pump_thread.join()

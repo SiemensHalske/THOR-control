@@ -20,6 +20,7 @@ LOW = GPIO.LOW
 HIGH = GPIO.HIGH
 
 BUS_IO = 1
+BUS_LCD = 3
 
 BUZZER = 36
 
@@ -66,14 +67,8 @@ ADDR_IO = 0x20
 def main(env: SimpleNamespace):
     env.isr_obj.INT_ENABLE = True
     
-    while system_functions.read_pcf8574(io_lock)[:0]:
-        user_interface()
-        if user_interface.ret != 0:
-            print("Something went wrong while shutting down the")
-            print("user interface/LC display")
-            
-            return False
-    
+    while system_functions.read_pcf8574(io_lock)[0]:
+        pass    
     return True
     
 
