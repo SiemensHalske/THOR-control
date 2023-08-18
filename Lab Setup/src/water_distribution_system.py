@@ -5,7 +5,6 @@ import system_functions
 from types import SimpleNamespace
 import RPi.GPIO as GPIO
 import smbus2
-import user_interface
 
 from setup_functions import GPIO_setup
 from threading import Lock, Thread
