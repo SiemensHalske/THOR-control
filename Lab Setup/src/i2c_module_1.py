@@ -1,10 +1,11 @@
+from threading import Lock
 import bme680
-from water_distribution_system import ADDR_BME680, BUS_IO
+from water_distribution_system import ADDR_BME680, BUS_MODULES
 
 
-def i2c_module_1():
+def i2c_module_1(module_bus_lock: Lock):
     # Create an instance of the BME680 class
-    sensor = bme680.BME680(i2c_addr=ADDR_BME680, bus_num=BUS_IO)
+    sensor = bme680.BME680(i2c_addr=ADDR_BME680, bus_num=BUS_MODULES)
 
     # Set up the sensor settings
     sensor.set_humidity_oversample(bme680.OS_2X)

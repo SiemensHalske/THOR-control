@@ -23,6 +23,7 @@ HIGH = GPIO.HIGH
 
 BUS_IO = 1
 BUS_LCD = 3
+BUS_MODULES = 5
 
 BUZZER = 36
 
@@ -97,43 +98,6 @@ def turn_on_pump(pump_num: int):
         GPIO.output(PWR_PUMP4, HIGH)
 
 
-# def main(env: SimpleNamespace):
-#     global io_states
-    
-#     io_thread = Thread(target=read_input_thread, daemon=True)
-#     io_thread.start()
-    
-#     while io_states[0]:
-#         env.isr_obj.INT_ENABLE = True if io_states[7] else False
-        
-#         i2c_modules_enable = [io_states[1], io_states[2], io_states[3]]
-#         master_switch = ggpio(ANALOG_SWITCH_1)
-        
-#         if i2c_modules_enable[0]:
-#             data = i2c_module_1()
-            
-#         elif i2c_modules_enable[1]:
-#             i2c_module_2()
-#         elif i2c_modules_enable[2]:
-#             i2c_module_3()
-        
-#         if ggpio(ANALOG_SWITCH_2):
-#             env.display_driver.update_lines(["Pumpe 1 ein", f"Tl: {env.guard.recent_water_level}m"])
-#             GPIO.output(PWR_PUMP1, HIGH)
-#         elif ggpio(ANALOG_SWITCH_3) and master_switch:
-#             GPIO.output(PWR_PUMP2, HIGH)
-#         elif ggpio(ANALOG_SWITCH_4) and master_switch:
-#             GPIO.output(PWR_PUMP3, HIGH)
-            
-#         if not ggpio(ANALOG_SWITCH_2):
-#             turn_off_pump(1)
-#         elif not ggpio(ANALOG_SWITCH_3) or not ggpio(ANALOG_SWITCH_1):
-#             turn_off_pump(2)
-#         elif not ggpio(ANALOG_SWITCH_4) or not ggpio(ANALOG_SWITCH_1):
-#             turn_off_pump(4)
-            
-#     return True
-
 def main(env: SimpleNamespace):
     global io_states
     
@@ -146,17 +110,19 @@ def main(env: SimpleNamespace):
         data = handle_i2c_modules(io_states)
         handle_pumps(env)
 
+
 def handle_i2c_modules(io_states):
     i2c_modules_enable = [io_states[1], io_states[2], io_states[3]]
 
     if i2c_modules_enable[0]:
-        data_1 = i2c_module_1()
+        data_1 = i2c_module_1(module_bus_lock=bus_lock)
     elif i2c_modules_enable[1]:
         data_2 = i2c_module_2()
     elif i2c_modules_enable[2]:
         data_3 = i2c_module_3()
         
     return [data_1, data_2, data_3]
+
 
 def handle_pumps(env):
     master_switch = ggpio(ANALOG_SWITCH_1)
