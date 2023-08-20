@@ -47,3 +47,5 @@ def GPIO_setup():
     GPIO.setup(ENABLE_ALARM2, OUT)
 
     GPIO.add_event_detect(INT1, GPIO.FALLING, callback = InterruptServiceRoutines.ISR_IO)
+    
+    
