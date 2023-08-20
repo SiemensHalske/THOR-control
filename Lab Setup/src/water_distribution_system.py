@@ -98,6 +98,10 @@ def turn_on_pump(pump_num: int):
         GPIO.output(PWR_PUMP4, HIGH)
 
 
+def display_env_measurements(glob: SimpleNamespace, env_measurements: dict[str]):
+    pass
+
+
 def main(env: SimpleNamespace):
     global io_states
     
@@ -109,6 +113,13 @@ def main(env: SimpleNamespace):
         
         data = handle_i2c_modules(io_states)
         handle_pumps(env)
+        
+        if io_states[1]:
+            display_env_measurements(env, data[0])
+        elif io_states[2]:
+            pass
+        elif io_states[3]:
+            pass
 
 
 def handle_i2c_modules(io_states):
