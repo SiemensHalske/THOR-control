@@ -32,3 +32,9 @@ def i2c_module_1(module_bus_lock: Lock):
         }
     else:
         return None
+    
+
+def i2c_temperature_module(module_bus_lock: Lock):
+    data = i2c_module_1(module_bus_lock=module_bus_lock)
+    
+    return data
