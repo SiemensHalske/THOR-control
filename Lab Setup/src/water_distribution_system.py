@@ -29,12 +29,13 @@ ANALOG_SWITCHES = [19, 21, 23, 27]
 RS = [11, 13, 15]
 ECHO_RESPONSE_0, TRIGGER_0 = 35, 37
 ADDR_PCF8574, ADDR_LCD, ADDR_IO, ADDR_BME680 = 0x20, 0x78, 0x20, 0x76
+ADDR_MLX90393, ADDR_TLV493D, ADDR_INA3221 = 0x0C, 0x1E, 0x40
 
 # ***** Global variables *****
 bus_lock = Lock()
 io_states = [0] * 8
 
-# ***** Functions *****
+# ****** Functions ******
 
 
 def read_input_thread():
@@ -74,16 +75,17 @@ def main(env: SimpleNamespace):
         data = handle_i2c_modules(io_states)
         handle_pumps(env)
         
-        display_env_measurements(env, data[0]) if io_states[1] else None
+        if data != -1:
+            display_env_measurements(env, data[0]) if io_states[1] else None
 
 def handle_i2c_modules(io_states):
     i2c_modules_enable = [io_states[1], io_states[2], io_states[3]]
 
-    data_1 = i2c_module_1(module_bus_lock=bus_lock) if i2c_modules_enable[0] else None
-    data_2 = i2c_module_2(module_bus_lock=bus_lock) if i2c_modules_enable[1] else None
-    data_3 = i2c_module_3(module_bus_lock=bus_lock) if i2c_modules_enable[2] else None
+    data_1 = i2c_module_1(module_bus_lock=bus_lock) if i2c_modules_enable[0] else None  # Temperature, humidity, pressure, gas resistance
+    data_2 = i2c_module_2(module_bus_lock=bus_lock) if i2c_modules_enable[1] else None  # Magnetic field
+    data_3 = i2c_module_3(module_bus_lock=bus_lock) if i2c_modules_enable[2] else None  # Current, voltage
         
-    return [data_1, data_2, data_3]
+    return [data_1, data_2, data_3] if None or -1 not in [data_1, data_2, data_3] else -1
 
 
 def handle_pumps(env):
